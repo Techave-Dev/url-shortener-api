@@ -10,6 +10,10 @@ jobs:
   ci:
     runs-on: ubuntu-latest
 
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5435/urlshortener_test
+      REDIS_URL: redis://localhost:6379
+
     services:
       postgres:
         image: postgres:17-alpine
@@ -20,7 +24,7 @@ jobs:
         ports:
           - 5435:5432
         options: >-
-          --health-cmd pg_isready -U postgres
+          --health-cmd "pg_isready -U postgres"
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
