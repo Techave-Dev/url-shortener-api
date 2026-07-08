@@ -5,51 +5,93 @@ import {
   ClickEvent,
   ClickStats,
 } from './interfaces/analytics.repository.interface';
+import {
+  recordClick,
+  getTotalClicks,
+  getClicksByDate,
+  getClicksByReferrer,
+  getStats,
+} from '../../generated/prisma/sql';
+import { PrismaService } from '../../prisma/prisma.service';
 
-// TODO: implement with Prisma TypedSQL
 @Injectable()
 export class AnalyticsRepository implements IAnalyticsRepository {
-  recordClick(data: RecordClickInput): Promise<ClickEvent> {
-    void data;
+  constructor(private readonly prisma: PrismaService) {}
+
+  async recordClick(data: RecordClickInput): Promise<ClickEvent> {
+    const [click] = await this.prisma.$queryRawTyped(
+      recordClick(
+        BigInt(data.urlId),
+        data.referrer ?? 'direct',
+        data.userAgent ?? '',
+      ),
+    );
+
+    if (!click) throw new Error('Failed to record click');
+
     return Promise.resolve({
-      id: '',
-      urlId: '',
-      timestamp: new Date(0),
-      referrer: null,
+      id: click.id.toString(),
+      urlId: click.urlId.toString(),
+      timestamp: click.createdAt,
+      referrer: click.referrer,
     });
   }
 
-  getTotalClicks(urlId: string): Promise<number> {
-    void urlId;
-    return Promise.resolve(0);
+  async getTotalClicks(urlId: string): Promise<number> {
+    const [result] = await this.prisma.$queryRawTyped(
+      getTotalClicks(BigInt(urlId)),
+    );
+    return Number(result?.totalClicks ?? 0);
   }
 
-  getClicksByDate(
+  async getClicksByDate(
     urlId: string,
     from?: Date,
     to?: Date,
   ): Promise<Array<{ date: string; count: number }>> {
-    void urlId;
-    void from;
-    void to;
-    return Promise.resolve([]);
+    const fromStr = from?.toISOString() ?? '';
+    const toStr = to?.toISOString() ?? '';
+    const rows = await this.prisma.$queryRawTyped(
+      getClicksByDate(BigInt(urlId), fromStr, toStr),
+    );
+    return rows.map((r) => ({
+      date: r.date || '',
+      count: Number(r.count),
+    }));
   }
 
-  getClicksByReferrer(
+  async getClicksByReferrer(
     urlId: string,
   ): Promise<Array<{ referrer: string; count: number }>> {
-    void urlId;
-    return Promise.resolve([]);
+    const rows = await this.prisma.$queryRawTyped(
+      getClicksByReferrer(BigInt(urlId)),
+    );
+    return rows.map((r) => ({
+      referrer: r.referrer || '',
+      count: Number(r.count),
+    }));
   }
 
-  getStats(urlId: string, from?: Date, to?: Date): Promise<ClickStats> {
-    void urlId;
-    void from;
-    void to;
-    return Promise.resolve({
-      totalClicks: 0,
-      clicksByDate: [],
-      clicksByReferrer: [],
-    });
+  async getStats(urlId: string, from?: Date, to?: Date): Promise<ClickStats> {
+    const bigintUrlId = BigInt(urlId);
+    const fromStr = from ? from.toISOString() : '';
+    const toStr = to ? to.toISOString() : '';
+    const [totalRes, dateRes, referrerRes] = await Promise.all([
+      this.prisma.$queryRawTyped(getStats(bigintUrlId, fromStr, toStr)),
+      this.prisma.$queryRawTyped(getClicksByDate(bigintUrlId, fromStr, toStr)),
+      this.prisma.$queryRawTyped(getClicksByReferrer(bigintUrlId)),
+    ]);
+
+    return {
+      totalClicks: totalRes[0] ? Number(totalRes[0].totalClicks) : 0,
+      clicksByDate: dateRes.map((d) => ({
+        date: d.date || '',
+        count: d.count ? Number(d.count) : 0,
+      })),
+      clicksByReferrer: referrerRes.map((r) => ({
+        referrer: r.referrer || 'direct',
+        count: r.count ? Number(r.count) : 0,
+      })),
+    };
   }
 }

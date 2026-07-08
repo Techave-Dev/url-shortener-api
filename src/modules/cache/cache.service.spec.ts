@@ -1,12 +1,24 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { CacheService } from './cache.service';
+import { Redis } from 'ioredis';
 
 describe('CacheService', () => {
   let service: CacheService;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      providers: [CacheService],
+      providers: [
+        CacheService,
+        {
+          provide: Redis,
+          useValue: {
+            get: jest.fn().mockResolvedValue(null),
+            set: jest.fn(),
+            del: jest.fn(),
+            status: 'close',
+          },
+        },
+      ],
     }).compile();
 
     service = module.get(CacheService);

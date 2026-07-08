@@ -14,10 +14,17 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   constructor(
     @Inject(IAuthRepository) private readonly authRepository: IAuthRepository,
   ) {
+    const jwtSecret = process.env.JWT_SECRET;
+    if (!jwtSecret) {
+      throw new Error(
+        'JWT_SECRET environment variable is required but was not provided',
+      );
+    }
+
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
-      secretOrKey: process.env.JWT_SECRET || 'fallback-secret',
+      secretOrKey: jwtSecret,
     });
   }
 

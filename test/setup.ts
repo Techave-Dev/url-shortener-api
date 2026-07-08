@@ -1,1 +1,1 @@
-import 'dotenv-cli/config';
+import 'dotenv/config';

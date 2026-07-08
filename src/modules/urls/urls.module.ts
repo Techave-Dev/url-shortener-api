@@ -4,8 +4,10 @@ import { UrlsService } from './urls.service';
 import { UrlsRepository } from './urls.repository';
 import { IUrlsService } from './interfaces/urls.service.interface';
 import { IUrlsRepository } from './interfaces/urls.repository.interface';
+import { AnalyticsModule } from '../analytics/analytics.module';
 
 @Module({
+  imports: [AnalyticsModule],
   controllers: [UrlsController],
   providers: [
     {

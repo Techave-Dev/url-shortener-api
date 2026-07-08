@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { createZodDto } from 'nestjs-zod';
 
 export const RegisterSchema = z.object({
   email: z.string().email('Invalid email format'),
@@ -9,4 +10,4 @@ export const RegisterSchema = z.object({
     .max(255, 'Name must be at most 255 characters'),
 });
 
-export type RegisterDto = z.infer<typeof RegisterSchema>;
+export class RegisterDto extends createZodDto(RegisterSchema) {}

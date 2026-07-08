@@ -7,3 +7,59 @@ generator client {
 datasource db {
   provider = "postgresql"
 }
+
+model User {
+  id            BigInt   @id @default(autoincrement())
+  email         String   @unique @db.VarChar(254)
+  passwordHash  String   @map("password_hash")
+  name          String
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt     DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  urls          ShortenedUrl[]
+  refreshTokens RefreshToken[]
+
+  @@map("users")
+}
+
+model RefreshToken {
+  id        BigInt   @id @default(autoincrement())
+  token     String   @unique
+  userId    BigInt   @map("user_id")
+  expiresAt DateTime @map("expires_at")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  revoked   Boolean  @default(false)
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("refresh_tokens")
+}
+
+model ShortenedUrl {
+  id          BigInt   @id @default(autoincrement())
+  slug        String   @unique
+  originalUrl String   @map("original_url")
+  userId      BigInt?  @map("user_id")
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  user        User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  clickEvents ClickEvent[]
+
+  @@index([slug])
+  @@map("urls")
+}
+
+model ClickEvent {
+  id        BigInt   @id @default(autoincrement())
+  urlId     BigInt   @map("url_id")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  referrer  String   @default("direct")
+  userAgent String   @map("user_agent") 
+
+  url       ShortenedUrl @relation(fields: [urlId], references: [id], onDelete: Cascade)
+
+  @@index([urlId])
+  @@index([createdAt])
+  @@map("click_events") 
+}

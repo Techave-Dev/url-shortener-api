@@ -7,16 +7,19 @@ import {
   NotFoundException,
   ForbiddenException,
 } from '@nestjs/common';
+import { ICacheService } from '../cache/interfaces/cache.service.interface';
 
 describe('UrlsService', () => {
   let service: UrlsService;
   const mockRepository = mock<IUrlsRepository>();
+  const mockCacheService = mock<ICacheService>();
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         UrlsService,
         { provide: IUrlsRepository, useValue: mockRepository },
+        { provide: ICacheService, useValue: mockCacheService },
       ],
     }).compile();
 
@@ -62,11 +65,18 @@ describe('UrlsService', () => {
     });
 
     it('should throw ConflictException for duplicate slug', async () => {
-      mockRepository.slugExists.mockResolvedValue(true);
+      const dbError = { code: '23505' };
+      mockRepository.createUrl.mockRejectedValue(dbError);
 
       await expect(
         service.createUrl({ url: 'https://example.com', slug: 'taken' }),
       ).rejects.toThrow(ConflictException);
+
+      expect(mockRepository.createUrl).toHaveBeenCalledWith({
+        originalUrl: 'https://example.com',
+        slug: 'taken',
+        userId: undefined,
+      });
     });
   });
 

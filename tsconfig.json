@@ -14,6 +14,7 @@
     "incremental": true,
     "skipLibCheck": true,
     "strictNullChecks": true,
+    "isolatedModules": true,
     "forceConsistentCasingInFileNames": true,
     "noImplicitAny": false,
     "strictBindCallApply": false,

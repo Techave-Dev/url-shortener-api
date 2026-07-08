@@ -1,11 +1,14 @@
+import { randomUUID } from 'crypto';
 import { Test, TestingModule } from '@nestjs/testing';
-import { INestApplication, ValidationPipe } from '@nestjs/common';
+import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { AppModule } from '../src/app.module';
 
 describe('URLs (e2e)', () => {
   let app: INestApplication;
   let accessToken: string;
+  const customSlug = `custom-slug-${randomUUID()}`;
+  const duplicateSlug = `dupe-slug-${randomUUID()}`;
 
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
@@ -13,12 +16,11 @@ describe('URLs (e2e)', () => {
     }).compile();
 
     app = moduleFixture.createNestApplication();
-    app.useGlobalPipes(new ValidationPipe({ transform: true }));
     await app.init();
 
-    // Register and login to get token
+    const email = `urluser-${randomUUID()}@test.com`;
     await request(app.getHttpServer()).post('/auth/register').send({
-      email: 'urluser@test.com',
+      email,
       password: 'password123',
       name: 'URL User',
     });
@@ -26,7 +28,7 @@ describe('URLs (e2e)', () => {
     const loginRes = await request(app.getHttpServer())
       .post('/auth/login')
       .send({
-        email: 'urluser@test.com',
+        email,
         password: 'password123',
       });
     accessToken = loginRes.body.data.accessToken;
@@ -58,11 +60,11 @@ describe('URLs (e2e)', () => {
         .set('Authorization', `Bearer ${accessToken}`)
         .send({
           url: 'https://example.com',
-          slug: 'custom-slug',
+          slug: customSlug,
         })
         .expect(201)
         .expect((res) => {
-          expect(res.body.data.url.slug).toBe('custom-slug');
+          expect(res.body.data.url.slug).toBe(customSlug);
         });
     });
 
@@ -72,7 +74,7 @@ describe('URLs (e2e)', () => {
         .set('Authorization', `Bearer ${accessToken}`)
         .send({
           url: 'https://example.com',
-          slug: 'duplicate-slug',
+          slug: duplicateSlug,
         });
 
       return request(app.getHttpServer())
@@ -80,7 +82,7 @@ describe('URLs (e2e)', () => {
         .set('Authorization', `Bearer ${accessToken}`)
         .send({
           url: 'https://example.com',
-          slug: 'duplicate-slug',
+          slug: duplicateSlug,
         })
         .expect(409);
     });

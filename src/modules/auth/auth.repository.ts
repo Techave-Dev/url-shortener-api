@@ -6,62 +6,118 @@ import {
   CreateRefreshTokenInput,
   RefreshToken,
 } from './interfaces/auth.repository.interface';
+import {
+  createUser,
+  findByEmail,
+  findById,
+  findPasswordByEmail,
+  createRefreshToken,
+  findRefreshToken,
+  revokeRefreshToken,
+  revokeAllRefreshTokens,
+} from '../../generated/prisma/sql';
+import { PrismaService } from '../../prisma/prisma.service';
 
-// TODO: implement with Prisma TypedSQL
 @Injectable()
 export class AuthRepository implements IAuthRepository {
-  createUser(data: CreateUserInput): Promise<User> {
-    void data;
-    return Promise.resolve({
-      id: '',
-      email: '',
-      name: '',
-      createdAt: new Date(0),
-      updatedAt: new Date(0),
-    });
+  constructor(private readonly prisma: PrismaService) {}
+
+  async createUser(data: CreateUserInput): Promise<User> {
+    const [user] = await this.prisma.$queryRawTyped(
+      createUser(data.email, data.passwordHash, data.name),
+    );
+
+    if (!user) {
+      throw new Error('Failed to create user');
+    }
+
+    return {
+      id: user.id.toString(),
+      email: user.email,
+      name: user.name,
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt,
+    };
   }
 
-  findByEmail(email: string): Promise<User | null> {
-    void email;
-    return Promise.resolve(null);
+  async findByEmail(email: string): Promise<User | null> {
+    const [user] = await this.prisma.$queryRawTyped(findByEmail(email));
+    if (!user) return null;
+
+    return {
+      id: user.id.toString(),
+      email: user.email,
+      name: user.name,
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt,
+    };
   }
 
-  findById(id: string): Promise<User | null> {
-    void id;
-    return Promise.resolve(null);
+  async findById(id: string): Promise<User | null> {
+    const [user] = await this.prisma.$queryRawTyped(findById(BigInt(id)));
+    if (!user) return null;
+
+    return {
+      id: user.id.toString(),
+      email: user.email,
+      name: user.name,
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt,
+    };
   }
 
-  findPasswordByEmail(
+  async findPasswordByEmail(
     email: string,
   ): Promise<{ id: string; passwordHash: string } | null> {
-    void email;
-    return Promise.resolve(null);
+    const [user] = await this.prisma.$queryRawTyped(findPasswordByEmail(email));
+    if (!user) return null;
+
+    return {
+      id: user.id.toString(),
+      passwordHash: user.passwordHash,
+    };
   }
 
-  createRefreshToken(data: CreateRefreshTokenInput): Promise<RefreshToken> {
-    void data;
-    return Promise.resolve({
-      id: '',
-      token: '',
-      userId: '',
-      expiresAt: new Date(0),
-      revoked: false,
-      createdAt: new Date(0),
-    });
+  async createRefreshToken(
+    data: CreateRefreshTokenInput,
+  ): Promise<RefreshToken> {
+    const [result] = await this.prisma.$queryRawTyped(
+      createRefreshToken(data.token, BigInt(data.userId), data.expiresAt),
+    );
+
+    if (!result) {
+      throw new Error('Failed to create refresh token');
+    }
+
+    return {
+      id: result.id.toString(),
+      token: result.token,
+      userId: result.userId.toString(),
+      expiresAt: result.expiresAt,
+      revoked: result.revoked,
+      createdAt: result.createdAt,
+    };
   }
 
-  findRefreshToken(token: string): Promise<RefreshToken | null> {
-    void token;
-    return Promise.resolve(null);
+  async findRefreshToken(token: string): Promise<RefreshToken | null> {
+    const [result] = await this.prisma.$queryRawTyped(findRefreshToken(token));
+    if (!result) return null;
+
+    return {
+      id: result.id.toString(),
+      token: result.token,
+      userId: result.userId.toString(),
+      expiresAt: result.expiresAt,
+      revoked: result.revoked,
+      createdAt: result.createdAt,
+    };
   }
 
-  revokeRefreshToken(token: string): Promise<void> {
-    void token;
-    return Promise.resolve();
+  async revokeRefreshToken(token: string): Promise<void> {
+    await this.prisma.$queryRawTyped(revokeRefreshToken(token));
   }
 
-  revokeAllRefreshTokens(userId: string): Promise<void> {
-    void userId;
-    return Promise.resolve();
+  async revokeAllRefreshTokens(userId: string): Promise<void> {
+    await this.prisma.$queryRawTyped(revokeAllRefreshTokens(BigInt(userId)));
   }
 }

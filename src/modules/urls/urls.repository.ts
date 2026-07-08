@@ -4,39 +4,83 @@ import {
   CreateUrlInput,
   Url,
 } from './interfaces/urls.repository.interface';
+import {
+  createUrl,
+  createUrlAnonymous,
+  findBySlug,
+  deleteUrl,
+  findUrlById,
+  slugExists,
+} from '../../generated/prisma/sql';
+import { PrismaService } from '../../prisma/prisma.service';
 
-// TODO: implement with Prisma TypedSQL
 @Injectable()
 export class UrlsRepository implements IUrlsRepository {
-  createUrl(data: CreateUrlInput): Promise<Url> {
-    void data;
-    return Promise.resolve({
-      id: '',
-      slug: '',
-      originalUrl: '',
-      userId: null,
-      createdAt: new Date(0),
-      updatedAt: new Date(0),
-    });
+  constructor(private readonly prisma: PrismaService) {}
+
+  async createUrl(data: CreateUrlInput): Promise<Url> {
+    const [url] = data.userId
+      ? await this.prisma.$queryRawTyped(
+          createUrl(data.slug, data.originalUrl, BigInt(data.userId)),
+        )
+      : await this.prisma.$queryRawTyped(
+          createUrlAnonymous(data.slug, data.originalUrl),
+        );
+
+    if (!url) {
+      throw new Error('Failed to create url');
+    }
+
+    return {
+      id: url.id.toString(),
+      slug: url.slug,
+      originalUrl: url.originalUrl,
+      userId: url.userId?.toString() ?? null,
+      createdAt: url.createdAt,
+      updatedAt: url.updatedAt,
+    };
   }
 
-  findBySlug(slug: string): Promise<Url | null> {
-    void slug;
-    return Promise.resolve(null);
+  async findBySlug(slug: string): Promise<Url | null> {
+    const [url] = await this.prisma.$queryRawTyped(findBySlug(slug));
+
+    if (!url) {
+      return null;
+    }
+
+    return {
+      id: url.id.toString(),
+      slug: url.slug,
+      originalUrl: url.originalUrl,
+      userId: url.userId?.toString() ?? null,
+      createdAt: url.createdAt,
+      updatedAt: url.updatedAt,
+    };
   }
 
-  findById(id: string): Promise<Url | null> {
-    void id;
-    return Promise.resolve(null);
+  async findById(id: string): Promise<Url | null> {
+    const [url] = await this.prisma.$queryRawTyped(findUrlById(BigInt(id)));
+
+    if (!url) {
+      return null;
+    }
+
+    return {
+      id: url.id.toString(),
+      slug: url.slug,
+      originalUrl: url.originalUrl,
+      userId: url.userId?.toString() ?? null,
+      createdAt: url.createdAt,
+      updatedAt: url.updatedAt,
+    };
   }
 
-  deleteUrl(id: string): Promise<void> {
-    void id;
-    return Promise.resolve();
+  async deleteUrl(id: string): Promise<void> {
+    await this.prisma.$queryRawTyped(deleteUrl(BigInt(id)));
   }
 
-  slugExists(slug: string): Promise<boolean> {
-    void slug;
-    return Promise.resolve(false);
+  async slugExists(slug: string): Promise<boolean> {
+    const [result] = await this.prisma.$queryRawTyped(slugExists(slug));
+    return result?.exists ?? false;
   }
 }

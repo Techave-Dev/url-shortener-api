@@ -1,0 +1,11 @@
+node_modules
+dist
+.git
+.gitignore
+.env
+coverage
+test
+*.spec.ts
+*.integration-spec.ts
+*.e2e-spec.ts
+README.md

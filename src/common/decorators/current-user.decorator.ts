@@ -8,7 +8,7 @@ export const CurrentUser = createParamDecorator(
 
     if (!data) return user;
     if (user && typeof user === 'object' && data in user) {
-      return (user as Record<string, unknown>)[data];
+      return user[data];
     }
     return undefined;
   },

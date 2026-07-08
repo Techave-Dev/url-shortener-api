@@ -3,8 +3,15 @@ import { AnalyticsService } from './analytics.service.js';
 import { AnalyticsRepository } from './analytics.repository.js';
 import { IAnalyticsService } from './interfaces/analytics.service.interface.js';
 import { IAnalyticsRepository } from './interfaces/analytics.repository.interface.js';
+import { AnalyticsProcessor } from './analytics.processor.js';
+import { BullModule } from '@nestjs/bullmq';
 
 @Module({
+  imports: [
+    BullModule.registerQueue({
+      name: 'click-events',
+    }),
+  ],
   providers: [
     {
       provide: IAnalyticsService,
@@ -14,7 +21,8 @@ import { IAnalyticsRepository } from './interfaces/analytics.repository.interfac
       provide: IAnalyticsRepository,
       useClass: AnalyticsRepository,
     },
+    AnalyticsProcessor,
   ],
-  exports: [IAnalyticsService],
+  exports: [IAnalyticsService, BullModule],
 })
 export class AnalyticsModule {}

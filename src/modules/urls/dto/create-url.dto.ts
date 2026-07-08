@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { createZodDto } from 'nestjs-zod';
 
 export const CreateUrlSchema = z.object({
   url: z.string().url('Invalid URL format'),
@@ -13,4 +14,4 @@ export const CreateUrlSchema = z.object({
     .optional(),
 });
 
-export type CreateUrlDto = z.infer<typeof CreateUrlSchema>;
+export class CreateUrlDto extends createZodDto(CreateUrlSchema) {}
